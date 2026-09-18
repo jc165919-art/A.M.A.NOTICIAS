@@ -1,5 +1,5 @@
 /* =========================================================================
-   AmaNotícias — globo 3D do cabeçalho
+  A.M.A.NOTICIAS — globo 3D do cabeçalho
    =========================================================================
    Um globo esquemático (paralelos e meridianos em wireframe) com pontos
    pulsantes marcando as cidades onde ficam as fontes de notícia agregadas

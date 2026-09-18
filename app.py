@@ -1,5 +1,5 @@
 """
-AmaNotícias — back-end (Flask)
+A.M.A.NOTICIAS — back-end (Flask)
 =================================================================
 API de notícias em tempo real a partir de feeds RSS.
 
@@ -70,7 +70,7 @@ def get_news():
     page = int(request.args.get("page", 1))
     page_size = 12
 
-    cache_key = ("relevance-v6", category, query, page)
+    cache_key = ("relevance-v7", category, query, page)
     cached = _news_cache.get(cache_key)
     if cached and (time.time() - cached[0]) < CACHE_TTL_SECONDS:
         return jsonify(cached[1])
@@ -128,6 +128,14 @@ def _fetch_rss_articles(category, query):
         feed_sources["Busca Bing"] = (
             "https://www.bing.com/news/search?q="
             f"{google_query}&format=rss"
+        )
+    elif category in category_terms:
+        category_query = requests.utils.quote(
+            " OR ".join(_search_terms(category_terms[category]))
+        )
+        feed_sources["Categoria"] = (
+            "https://news.google.com/rss/search?q="
+            f"{category_query}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
         )
 
     def fetch_feed(source, feed_url):
@@ -526,7 +534,7 @@ def chat():
 
     history = _sanitize_chat_history(data.get("history"))
     system_prompt = (
-        "Você é o assistente de notícias do portal AmaNotícias. Responda sempre em "
+        "Você é o assistente de notícias do portal A.M.A.NOTICIAS. Responda sempre em "
         "português do Brasil, de forma objetiva, natural e amigável, com respostas "
         "curtas e diretas, a menos que o usuário peça análise mais profunda. Para "
         "perguntas complexas, faça uma resposta estruturada: primeiro a resposta direta, "

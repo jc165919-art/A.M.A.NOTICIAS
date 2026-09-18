@@ -1,5 +1,5 @@
 /* =========================================================================
-   AmaNotícias — folha de estilo
+  A.M.A.NOTICIAS — folha de estilo
    =========================================================================
    Índice
    -------------------------------------------------------------------------
@@ -1859,8 +1859,9 @@ input:focus:not(:focus-visible) {
   }
 
   .chatbot {
-    right: 0.5rem;
-    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    right: 1rem;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    z-index: calc(var(--z-drawer) + 1);
   }
 
   .chatbot-toggle span:not([aria-hidden]) {
@@ -1868,10 +1869,16 @@ input:focus:not(:focus-visible) {
   }
 
   .chatbot-toggle {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     justify-content: center;
     padding: 0;
+    border: 2px solid var(--color-paper-raised);
+    box-shadow: 0 5px 18px rgba(23, 26, 35, 0.35), var(--shadow-floating);
+  }
+
+  .chatbot-toggle span[aria-hidden] {
+    font-size: 1.35rem;
   }
 
   .chatbot-panel {

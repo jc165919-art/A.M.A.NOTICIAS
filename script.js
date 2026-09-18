@@ -1,5 +1,5 @@
 /* =========================================================================
-   AmaNotícias — script.js
+  A.M.A.NOTICIAS — script.js
    Consome o back-end Flask (app.py):
      GET /api/news?category=...&q=...&page=...
    ========================================================================= */
@@ -330,7 +330,7 @@ async function loadNews({ reset = false } = {}) {
     el.feedError.hidden = false;
     el.feedErrorText.textContent =
       'Não foi possível carregar as notícias agora. Verifique se o servidor Python (app.py) está rodando em ' +
-      API_BASE_URL + '.';
+      (API_BASE_URL || 'http://127.0.0.1:5000') + '.';
   } finally {
     state.loading = false;
     if (state.pendingReset) {

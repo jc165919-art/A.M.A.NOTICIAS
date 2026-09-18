@@ -70,7 +70,7 @@ def get_news():
     page = int(request.args.get("page", 1))
     page_size = 12
 
-    cache_key = ("relevance-v7", category, query, page)
+    cache_key = ("relevance-v10", category, query, page)
     cached = _news_cache.get(cache_key)
     if cached and (time.time() - cached[0]) < CACHE_TTL_SECONDS:
         return jsonify(cached[1])
@@ -115,19 +115,22 @@ def _fetch_rss_articles(category, query):
         "entertainment": "cultura entretenimento cinema música televisão",
     }
     query_terms = _search_terms(query)
-    terms = query_terms or _search_terms(category_terms.get(category, ""))
+    category_terms_list = _search_terms(category_terms.get(category, ""))
+    terms = query_terms or category_terms_list
     articles = []
+    feed_articles = []
 
     feed_sources = dict(RSS_FEEDS)
     if query:
-        google_query = requests.utils.quote(query)
+        feed_sources = {}
+        search_query = query
+        if category in category_terms:
+            category_anchor = _search_terms(category_terms[category])[0]
+            search_query = f"{query} {category_anchor}"
+        google_query = requests.utils.quote(search_query)
         feed_sources["Busca"] = (
             "https://news.google.com/rss/search?q="
             f"{google_query}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
-        )
-        feed_sources["Busca Bing"] = (
-            "https://www.bing.com/news/search?q="
-            f"{google_query}&format=rss"
         )
     elif category in category_terms:
         category_query = requests.utils.quote(
@@ -166,20 +169,38 @@ def _fetch_rss_articles(category, query):
             description_html = _rss_text(item, "description")
             description = _clean_html(description_html)
             image = _extract_image_url(item, description_html)
-            searchable = _normalize_search_text(f"{title} {description}")
-            if query_terms:
-                if not all(term in searchable for term in query_terms):
-                    continue
-            elif terms and not any(term in searchable for term in terms):
-                continue
-            articles.append({
+            normalized_title = _normalize_search_text(title)
+            normalized_description = _normalize_search_text(description)
+            searchable = f"{normalized_title} {normalized_description}"
+            matched_query_terms = sum(term in searchable for term in query_terms)
+            feed_article = {
                 "title": title,
                 "description": description,
                 "url": _rss_text(item, "link"),
                 "image": image,
                 "source": source,
                 "published_at": _rss_text(item, "pubDate"),
-            })
+                "relevance": matched_query_terms * 40,
+            }
+            feed_articles.append(feed_article)
+            if query_terms:
+                minimum_matches = max(1, (len(query_terms) + 1) // 2)
+                if matched_query_terms < minimum_matches:
+                    continue
+            elif terms and not any(term in searchable for term in terms):
+                continue
+            relevance = matched_query_terms * 40
+            relevance += sum(term in normalized_title for term in query_terms) * 70
+            if query and _normalize_search_text(query) in normalized_title:
+                relevance += 120
+            category_matches = sum(term in searchable for term in category_terms_list)
+            if category != "general":
+                relevance += category_matches * 8
+            feed_article["relevance"] = relevance
+            articles.append(feed_article)
+
+    if query and not articles:
+        articles = feed_articles
 
     image_counts = {}
     for article in articles:
@@ -189,8 +210,8 @@ def _fetch_rss_articles(category, query):
     candidates = [
         article for article in articles
         if not article["image"] or image_counts.get(article["image"], 0) > 1
-    ]
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    ][:24]
+    with ThreadPoolExecutor(max_workers=12) as executor:
         futures = {
             executor.submit(_extract_article_page_image, article["url"]): article
             for article in candidates
@@ -217,6 +238,7 @@ def _fetch_rss_articles(category, query):
     deduplicated.sort(
         key=lambda article: (
             bool(article.get("image")),
+            article.get("relevance", 0),
             article.get("published_at") or "",
         ),
         reverse=True,
@@ -300,7 +322,7 @@ def _extract_article_page_image(url):
         response = requests.get(
             url,
             headers={"User-Agent": "Mozilla/5.0 (compatible; AmaNoticias/1.0)"},
-            timeout=4,
+            timeout=2,
         )
         response.raise_for_status()
     except (requests.RequestException, ValueError):

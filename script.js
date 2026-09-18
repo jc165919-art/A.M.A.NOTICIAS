@@ -177,6 +177,14 @@ function bindChatbot() {
   const setOpen = (open) => {
     el.chatbotPanel.hidden = !open;
     el.chatbotToggle.setAttribute('aria-expanded', String(open));
+    el.chatbotToggle.setAttribute(
+      'aria-label',
+      open ? 'Fechar assistente de notícias' : 'Abrir assistente de notícias'
+    );
+    el.chatbotToggle.setAttribute(
+      'title',
+      open ? 'Fechar assistente de notícias' : 'Abrir assistente de notícias'
+    );
     if (open) el.chatbotInput.focus();
   };
 
@@ -303,9 +311,7 @@ async function loadNews({ reset = false } = {}) {
     }
 
     const data = await response.json();
-    const articles = (data.articles || []).sort(
-      (left, right) => Number(Boolean(right.image)) - Number(Boolean(left.image))
-    );
+    const articles = data.articles || [];
 
     state.articles = state.page === 1 ? articles : [...state.articles, ...articles];
 
